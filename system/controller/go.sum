@@ -1,0 +1,6 @@
+github.com/ldej/go-acapy-client v0.0.0-20210607085110-82da231a9f74 h1:nxkdVh4PYlQ613yG8yUCUGO1DullYBJDMedWrWhJdqc=
+github.com/ldej/go-acapy-client v0.0.0-20210607085110-82da231a9f74/go.mod h1:UiuzihwaGDGcPn/zETWz3Wxfu2r27Ehu19ns3v7KyWc=
+github.com/lib/pq v1.10.5 h1:J+gdV2cUmX7ZqL2B0lFcW0m+egaHC2V3lpO8nWxyYiQ=
+github.com/lib/pq v1.10.5/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
+golang.org/x/crypto v0.0.0-20220511200225-c6db032c6c88 h1:Tgea0cVUD0ivh5ADBX4WwuI12DUd2to3nCYe2eayMIw=
+golang.org/x/crypto v0.0.0-20220511200225-c6db032c6c88/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
