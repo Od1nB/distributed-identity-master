@@ -1,13 +1,13 @@
 # distributed-identity-master
 
-This repo containcs a docker compose to setup the dev env for a distributed identity system with a proxy.
-
 ### Requirements
-One requirement for the compose to work is an additional repo located at ~/repos. (linux based)
-A tails server https://github.com/bcgov/indy-tails-server
-Built on docker-compose version 3
+To be able to run the code, docker has to be installed on the device it's going to be launched at. The docker compose file format has version 3.0, so this means that the docker engine has to be of release >1.13.0+.
+If running this on windows it could be beneficial to have Windows Subsystem for Linux (WSL) installed and run it there, and docker desktop is also an advantage.  
 
 
 ### How to run:
-- cd distributed-identity-master
-- run: `docker-compose up`
+```
+git clone https://github.com/TheseusDeus/distributed-identity-master
+cd distributed-identity-master
+docker-compose up
+```
