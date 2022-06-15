@@ -11,17 +11,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// type App struct {
-// 	client       *acapy.Client
-// 	server       *http.Server
-// 	ledgerURL    string
-// 	port         int
-// 	label        string
-// 	seed         string
-// 	rand         string
-// 	myDID        string
-// 	connectionID string
-// }
+type CreatedWallet struct {
+	CreatedAt        string   `json:"created_at"`
+	KeyManagmentMode string   `json:"key_management_mode"`
+	Settings         struct{} `json:"settings"`
+	State            string   `json:"state"`
+	Token            string   `json:"token"`
+	UpdatedAt        string   `json:"updated_at"`
+	WalletId         string   `json:"wallet_id"`
+}
 
 type Credentials struct {
 	Password string `json:"password" db:"password_hash"`
@@ -29,38 +27,31 @@ type Credentials struct {
 	Wallet   string `json:"wallet" db:"wallet"`
 }
 
-type Post struct {
+type NewWalletPost struct {
 	ImageUrl      string `json:"image_url"`
 	KeyManagment  string `json:"managed"`
 	Label         string `json:"label"`
 	WalletDisType string `json:"wallet_dispatch_type"`
 	WalletKey     string `json:"wallet_key"`
-	WalletName    string `json:"MyNewWallet"`
+	WalletName    string `json:"wallet_name"`
 	WalletType    string `json:"wallet_type"`
 	WalletWebHook string `json:"wallet_webhook_urls"`
+}
+
+func setDefWalletPost(p *NewWalletPost) {
+	p.ImageUrl = "https://aries.ca/images/sample.png"
+	p.KeyManagment = "managed"
+	p.WalletDisType = "default"
+	p.WalletType = "indy"
+	p.WalletWebHook = "http://localhost:8022/webhooks"
 }
 
 var db *sql.DB
 
 func main() {
 	var err error
-
-	// fmt.Println("here")
-	// c := acapy.NewClient(fmt.Sprintf("http://localhost:%d", 8001))
-	// fmt.Println(c)
-
-	// const (
-	// 	host     = "localhost"
-	// 	port     = 5432
-	// 	user     = "postgres"
-	// 	password = "password"
-	// 	dbname   = "controller_db"
-	// )
 	http.HandleFunc("/signup", Signup)
 	http.HandleFunc("/signin", SignIn)
-	http.HandleFunc("/init", OneUser)
-	http.HandleFunc("/test", Ti)
-	http.HandleFunc("/addwallet", createWallet)
 	http.HandleFunc("/initdb", initDB)
 
 	db, err = sql.Open("postgres",
@@ -69,7 +60,6 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
-	fmt.Println("after init")
 	connErr := db.Ping()
 	if connErr != nil {
 		fmt.Println("cant connect to db")
@@ -80,6 +70,7 @@ func main() {
 
 }
 
+// In case the initial connect does not work
 func initDB(w http.ResponseWriter, r *http.Request) {
 	var err error
 	db, err = sql.Open("postgres",
@@ -97,54 +88,12 @@ func initDB(w http.ResponseWriter, r *http.Request) {
 	}
 	hashedPass, _ := bcrypt.GenerateFromPassword([]byte("password"), 3)
 	db.Query("insert into userinfo ($1, $2)", "user1", string(hashedPass))
-	fmt.Println(db)
-}
-
-func Ti(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "AAAAight, this is what i have for ya")
-}
-
-func createWallet(w http.ResponseWriter, r *http.Request) {
-	fmt.Print("making new wallet")
-	vals := Post{
-		ImageUrl:      "https://aries.ca/images/sample.png",
-		KeyManagment:  "managed",
-		Label:         "Alice",
-		WalletDisType: "default",
-		WalletKey:     "MySecretKey123",
-		WalletName:    "MyNewWallet",
-		WalletType:    "indy",
-		WalletWebHook: "http://localhost:8022/webhooks"}
-	json_data, err := json.Marshal(vals)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("sending post")
-	resp, err := http.Post(
-		"http://org1-agent:8001/multitenancy/wallet",
-		"application/json",
-		bytes.NewBuffer(json_data))
-	if err != nil {
-		fmt.Println("got this response")
-		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	fmt.Println(resp)
-	fmt.Println(err)
-}
-
-func OneUser(w http.ResponseWriter, r *http.Request) {
-	hashedPass, _ := bcrypt.GenerateFromPassword([]byte("password"), 3)
-	db.Query("insert into userinfo ($1, $2)", "user1", string(hashedPass))
 }
 
 func Signup(w http.ResponseWriter, r *http.Request) {
 	//Parse data into Creds instance
-	fmt.Println("got signup req")
 	creds := &Credentials{}
 	err := json.NewDecoder(r.Body).Decode(creds)
-	fmt.Println(creds)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -152,21 +101,52 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(creds.Password), 3)
 	if err != nil {
+		fmt.Println("could not create password")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(hashedPass)
 	if _, err = db.Query("insert into userinfo values ($1, $2)", creds.Username, string(hashedPass)); err != nil {
+		fmt.Println("could not insert into db")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+	vals := &NewWalletPost{}
+	setDefWalletPost(vals)
+
+	vals.Label = creds.Username
+	vals.WalletKey = string(hashedPass)
+	vals.WalletName = creds.Username
+
+	json_data, _ := json.Marshal(vals)
+
+	resp, err := http.Post(
+		"http://org1-agent:8001/multitenancy/wallet",
+		"application/json",
+		bytes.NewBuffer(json_data))
+	if err != nil {
+		fmt.Println(err)
+		// w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	//TODO: Make wallet for user in the ACAPY and write wallet handle to db
+	cwall := &CreatedWallet{}
+	err = json.NewDecoder(resp.Body).Decode(cwall)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if _, err = db.Exec("update userinfo set wallet =$2 where username = $1", creds.Username, cwall.WalletId); err != nil {
+		fmt.Println("could not insert into db")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+type SigninResp struct {
+	Wallet string `json:"wallet_id"`
 }
 
 func SignIn(w http.ResponseWriter, r *http.Request) {
 	//Parse incoming req to login into Credential struct
-	fmt.Println("got signin req")
 	creds := &Credentials{}
 	err := json.NewDecoder(r.Body).Decode(creds)
 	if err != nil {
@@ -174,13 +154,10 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	fmt.Println(creds)
-	db_password := db.QueryRow("select password_hash from userinfo where username=$1", creds.Username)
-	fmt.Println(db_password)
 
+	db_password := db.QueryRow("select password_hash from userinfo where username=$1", creds.Username)
 	storedCreds := &Credentials{}
 	err = db_password.Scan(&storedCreds.Password)
-	fmt.Println("error", err)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -192,8 +169,19 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 
 	if err = bcrypt.CompareHashAndPassword([]byte(storedCreds.Password), []byte(creds.Password)); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
+		return
 	}
 
-	//TODO: Fetch from ACAPY wallet and return in body
+	wallet_ID := db.QueryRow("select wallet from userinfo where username=$1", creds.Username)
+	err = wallet_ID.Scan(&storedCreds.Wallet)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+	confirmedWallet := SigninResp{Wallet: storedCreds.Wallet}
+	json_resp, _ := json.Marshal(confirmedWallet)
+	w.Write(json_resp)
 
 }

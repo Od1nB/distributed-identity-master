@@ -16,16 +16,16 @@ services:
     entrypoint: /bin/bash
     command: ["-c",
         "aca-py start \
-        --admin '0.0.0.0' 8001 \
+        --admin '0.0.0.0' ${ADMIN_PORT} \
         --admin-insecure-mode \
-        --inbound-transport http '0.0.0.0' 8000 \
+        --inbound-transport http '0.0.0.0' ${AGENT_PORT} \
         --outbound-transport http \
         --wallet-type indy \
+        --jwt-secret ${JWT_SECRET} \
+        --wallet-name ${WALLET_NAME} \
+        --wallet-key ${WALLET_KEY} \
         --multitenant-admin \
-        --jwt-secret secret123 \
-        --wallet-name org1wallet \
-        --wallet-key s123 \
-        --genesis-url http://localhost:9000/genesis \
+        --genesis-url ${GENESIS_URL} \
         --multitenant"
 
     ]
@@ -63,52 +63,30 @@ services:
     ports:
       - 5050:5050
 
-  ngrok-tails-server:
-    image: wernight/ngrok
-    networks:
-      - tails-server
-    ports:
-      - 4044:4040
-    command: ngrok http tails-server:6543 --log stdout
 
-  tails-server:
-    build:
-      context: ../../repo/indy-tails-server/
-      dockerfile: docker/Dockerfile.tails-server
-      # dockerfile: ../repo/indy-tails-server/docker/Dockerfile.tails-server
-    ports:
-      - 6543:6543
-    networks:
-      - tails-server
-    command: >
-      tails-server
-        --host 0.0.0.0
-        --port 6543
-        --log-level 0
-
-networks:
-  tails-server:
-        
-# --storage-path $STORAGE_PATH
-  #  agent-2:
-  #   image: bcgovimages/aries-cloudagent:py36-1.16-1_0.7.1
-  #   container_name: my-agent-2
-  #   environment:
-  #     ACAPY_ADMIN_INSECURE_MODE: "true"
-  #     ACAPY_AUTO_PROVISION: "true"
-  #     ACAPY_DEBUG_CONNECTIONS: "true"
-  #     ACAPY_ENDPOINT: "http://my-agent-2:9000"
-  #     ACAPY_LABEL: "Agent 2"
-  #     ACAPY_LOG_LEVEL: "info"
-  #     ACAPY_NO_LEDGER: "true"
-  #     ADMIN_PORT: "9001"
-  #     AGENT_PORT: "9000"
-  #   entrypoint: /bin/bash
-  #   command: ["-c",
-  #       "aca-py start \
-  #       --admin '0.0.0.0' 9001 \
-  #       --inbound-transport http '0.0.0.0' 9000 \
-  #       --outbound-transport http "
-  #   ]
+# This should be configured when tails server is implemented
+  # ngrok-tails-server:
+  #   image: wernight/ngrok
+  #   networks:
+  #     - tails-server
   #   ports:
-  #     - "9001:9001"
+  #     - 4044:4040
+  #   command: ngrok http tails-server:6543 --log stdout
+
+#   tails-server:
+#     build:
+#       context: ../../repo/indy-tails-server/
+#       dockerfile: docker/Dockerfile.tails-server
+#       # dockerfile: ../repo/indy-tails-server/docker/Dockerfile.tails-server
+#     ports:
+#       - 6543:6543
+#     networks:
+#       - tails-server
+#     command: >
+#       tails-server
+#         --host 0.0.0.0
+#         --port 6543
+#         --log-level 0
+
+# networks:
+#   tails-server:
